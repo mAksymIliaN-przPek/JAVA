@@ -1,0 +1,427 @@
+// Napisz jak wyliczysz oświetlenie sciany w cieniowaniu płaskim
+// Wyliczanie oświetlenia polega na uwzględnieniu kierunku światła i normalnej powierzchni
+//    określamy kierunek światła
+//    obliczenie normalnej powierzchni - wektor jednostkowy prostopadły do powierzchni trójkąta
+//    oblicz wartość światła
+//        wartość_światła = dot(nmormalna, kierunek_światła)
+//                          dot = iloczyn skalarny
+ 
+// Zmodyfikuj algorytm rysowania linii tak, aby wykorzystywał tylko zmienne typu int
+// public void drawlineBresenham(int x0, int x1, int y0, int y1){
+//    int white = 255 | (255 << 8) | (255 < 16) | (255 << 24);
+//    flat err = 0;
+//    flat d = Math.abs(2*(y1-y2);
+//    int y = y0;
+//    for(int x = x0; x<x1; x++){
+//        renderer.setRGB(x, y, white);
+//        err +=d;
+//        if(err > (x1-x0)){
+//            y += (y1 > y0 ? 1 :- 1); // y +1; -> jak 1 to tylko w góre linię
+//            err -= 2 * (x1-x0);
+//        }
+//    }
+// }
+ 
+// Offset i stride wwe floatach Vertex(xyz, rgb, st)xx3 na bajtach od 0 do 92:
+//
+//              Vertex 1                Vertex 2                Vertex 3
+//      X Y Z | R G B | S T ||| X Y Z | R G B | S T ||| X Y Z | R G B | S T
+//      0 4 8 12 16 20 24 28 32
+// POSITION -> | od 0 do 32 Vertex 1 ----------------> stride 32
+// COLOR offset 0  |
+// COLOR offest 12 | od 12 do XYZ Vertex 2 -> stride 32
+// TEXTURE offster 24 | od 24 do RGB Vertex 2 -> stride 32
+ 
+// Zdefiniuj atrybuty danych znajdujących się w buforze wierzchołków (Vertex Buffer Object), aby odzwierciedlić
+// ułożenie danych jak na poniższym diagramie
+//              Vertex 1                Vertex 2                Vertex 3
+//      X Y Z | R G B | S T ||| X Y Z | R G B | S T ||| X Y Z | R G B | S T
+//      0 4 8 12 16 20 24 28 32
+// użyj funkcji glVertexAttribPointer. Jej deklaracja wygląda następująco:
+// void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void * pointer);
+//
+// glVertexAttribPointer(0, 12, GL.Float, GL.False, 32, (void)*0);
+// glVertexAttribPointer(1, 8, GL.Float, GL.False, 32, (void)*12);
+// glVertexAttribPointer(2,             12,             GL.Float,           GL.False,               32,                 (void)*20);
+//                index of vertex   ilość atrybutów    typ danych       czy powinien być         ile zajmuje vertex
+//                                    komponentów                   normalizowany (dla float z
+//                                                                  nie ma efektu i tak)
+ 
+// Uzupełnij poniższy shader wierzchołkowo, tak aby korzystał z danych w buforze zdefiniowanym w zadaniu 1.
+// Kolor i położenie powinny być przekazywane dalej do potoku graficznego (zmienne wyjściowe)
+// natomiast położenie wierzchołka powinno być rozszerzone do wektora 4-elementowego
+// (ostatni element ustaw na 1.0) i wykorzystywane do ustawienia zmiennej gl = Poistion
+//
+// layout(location = 0) in Vec3 aPos;       // aPos
+// layout(location = 1) in Vec3 aColor;     // zmienne wejściowe
+// layout(location = 2) in Vec2 aTexCoord;  // aTexCoord
+//
+// FrayColor = vec4(1.0f, 0.5f, 0.2f, 1.0f) // dodaj def. danych wejściowych
+//
+// void main(){
+//      gl.Position = vec4(aPos.x, aPos.y, aPos.z, 1) // ustaw wartości
+// }
+ 
+// Rodzaje shadera w OpenGL:
+// Vertex Shader
+// Geometry Shader
+// Fragment Shadedr, Pixel Shader
+ 
+// Czy następujące zadanie jest prawdziwe?
+// W cieniowaniu płaskim każdy piksel danej ściany ma indywidualnie wyliczane parametry oświetlenia?
+// FAŁSZ
+// nie dla każdego piksela; jedna ściana będzie miała wszystkie piksele takie same
+ 
+// Czy światło padające na ściane obiektu będzie miało te same parametry w cieniowaniu płaskim?
+// TAK
+ 
+// Uniform czy zmienna jest unikalna dla każdego shadera
+// TAK
+ 
+// Jeśli punkt p ma jedną współrzędną barycentryczną równą -0.05, a pozostałe mają wartość w przedziale (0,1) to leży on
+// POZA TRÓJKĄTEM
+//
+// - wszystkie współrzędne (alfa, beta, gamma) należące do przedziału (0,1) to leży on WEWNĄTRZ trójkąta
+// - jedna współrzędna równa 0, pozostałe w przedziale (0,1) to leży on NA BOKU trójkąta
+// - dwie współrzędne równe 0, jedna równa 1 to leży on W WIERZCHOŁKU
+// - w przeciwnych wypadkach leży POZA
+ 
+// Opisz jak działa algorytm backface culling
+// Algorytm sprawdza czy dana ściana zwrócona jest w stronę kamery.
+// Sprawdza, czy promień kierunku patrzenia pada na ścianę, jeśli nie pada nie jest ona renderowana
+// jeśli w nawet najmniejszym stopniu pada jest ona renderowana.
+ 
+// Uzupełnij zawartość instrukcji warunkowej, tak aby sprawdzała ona czy współrzędnę barycentryczne bar są w przedziale (0,1)
+//
+// bar zawiera trzy pola: x,y,z
+//
+// public void drawTriangle(Vec2f A, Vec2f B, Vec2f C){
+//      int white = 255 | (255 << 8) | (255 < 16) | (255 << 24);
+//      for (int x = 0; x < w; x++) {
+//          Vec2f P = new Vec2f(x,y);
+//          Vec3f bar = barycentric(A,B,C,P);
+//          if (bar.x > 0 && bar.x < 1 && bar.y > 0 && bar.y < 1 & bar.z > 0 & bar.z < 1) {
+//              render.setRGB(x, y, white);
+//          }
+//      }
+// }
+
+
+
+
+Pytanie 1 
+Możesz używać symboli: -> x ^ ∈ {} () 
+Przykładowo:       f: X -> Y 
+ 
+8-bitowy jednokanałowy obraz cyfrowy o rozmiarach HxW można zdefiniować jako funkcję: 
+ODP: f: {x ∈ (0, W-1)} x {Y ∈ (0, H-1)} -> [0, 255] 
+ 
+ 
+Pytanie 2 
+public void drawLineBresenhamInt(int x0, int y0, int x1, int y1) { 
+int white = 255 | (255 << 8) | (255 << 16) | (255 << 24); 
+int err = 0; 
+... 
+int y = y0; 
+for(int x = x0; x < x1; x++) { 
+    		render.setRGB(x, y, white); 
+    		err += d; 
+    		if (err > (x1-x0)) { 
+        			y += 1; 
+        			err -= 2*(x1-x0); 
+  		} 
+} 
+} 
+ 
+Która wersja 4 linijki jest poprawna dla całkowitoliczbowego algorytmu rysowania linii Bresenhama? 
+ODP: int d = 2 * (y1 - y0); 
+ 
+ 
+Pytanie 3 
+Dokończ zdanie: 
+Algorytmy rasteryzacji transformują .................. . 
+ODP: płaszczyzny 2d w siatkę rastrową 
+ 
+ 
+Pytanie 4 
+Jeśli wartość w z-buforze o danych współrzędnych (x,y) jest ............... niż przetwarzanego piksela, to framebuffer nie jest aktualizowany. 
+Podpowiedź: oś -Z jest skierowana za ekran. 
+ODP: mniejsza 
+ 
+ 
+Pytanie 5 
+Podaj przykład przestrzeni kolorów (inny niż RGB) wykorzystywany często w urządzeniach druku kolorowego: 
+ODP: CMYK 
+ 
+ 
+Pytanie 6 
+Co jest prawdą o renderowaniu przez rasteryzację obiekt po obiekcie? 
+A) Jest wolne. 
+B) Działa jako potok przetwarzania. 
+C) kolejność to piksel po pikselu 
+D) Działa na CPU. 
+E) Działa na GPU. 
+F) Idealne do zastosowań real-time. 
+ODP: B, E, F 
+ 
+ 
+Pytanie 7 
+Najbardziej efektywnym algorytmem eliminacji powierzchni zasłoniętych jest ...................... . 
+ODP: algorytm z-bufora 
+ 
+ 
+Pytanie 8 
+Większość urządzeń do prezentacji grafiki to urządzenia: 
+A) rastrowe 
+B) wektorowe 
+C) żadne z wymienionych 
+ODP: A) rastrowe 
+ 
+ 
+Pytanie 9 
+Najczęściej wykorzystywanym modelem kamery w grafice komputerowej jest ...................... . 
+ODP: kamera otworkowa 
+ 
+ 
+Pytanie 10 
+Translacja 2D może być reprezentowana mnożeniem macierzy o wymiarach ....... x ....... . 
+ODP: 3x3 
+ 
+ 
+Pytanie 11 
+Jakie współrzędne są rezultatem transformacji viewport? 
+ODP: współrzędne ekranu 
+ 
+ 
+Pytanie 12 
+W transformacji perspektywicznej rozmiar obiektu na obrazie jest ...................... . 
+ODP: zależny od odległości od kamery, im dalej obiekt znajduje się od kamery, tym mniejszy się wydaje 
+ 
+ 
+Pytanie 13 
+Wymień programowalne etapy potoku graficznego: 
+ODP: etap przetwarzania geometrii, etap przetwarzania pikseli 
+ 
+ 
+Pytanie 14 
+public void drawLineBresenhamInt(int x0, int y0, int x1, int y1) { 
+int white = 255 | (255 << 8) | (255 << 16) | (255 << 24); 
+float err = 0.0f; 
+float d = (float)(y1 - y0) / (x1 - x0); 
+int y = y0; 
+for(int x = x0; x < x1; x++) { 
+render.setRGB(x, y, white); 
+err += d; 
+if (err > 0.5) { 
+y += 1; 
+err -= 1.0f; 
+} 
+} 
+} 
+ 
+Czy powyższym algorytmem można narysować poprawnie następującą linię (pixel p0 zaznaczony na niebiesko)? 
+ODP: tak lub nie 
+Tu trzeba patrzeć w kodzie jaki znak stoi przy zmiennej y. Jeśli y+=1 to algorytm narysuje linię do góry. Jeśli y-=1 to algorytm narysuje linię w dół. Jeśli nie będzie tam dodawania ani odejmowania to linia będzie pozioma. 
+ 
+ 
+Pytanie 15 
+Czy następujące zdanie jest prawdziwe?: 
+W cieniowaniu płaskim każdy piksel danej ściany ma indywidualnie wyliczane parametry oświetlenia. 
+ODP: nie 
+ 
+ 
+Pytanie 16 
+Macierz transformacji trójwymiarowego wektora [4, 2, 2] do wektora [8, 6, 1] będzie wyglądać następująco: 
+ 
+ODP: 2, 0, 0, 0, 3, 0, 0, 0, 0.5 
+ 
+ 
+Pytanie 17 
+Model opisujący coś, co ma pojawić się na obrazie to: 
+A) model matematyczny 
+B) model obliczeniowy 
+C) model geometryczny 
+ODP: C) model geometryczny 
+ 
+ 
+Pytanie 18 
+....................... i ....................... pozwalają GPU uzyskać wysoką wydajność. 
+ODP: potokowość i zrównoleglenie 
+ 
+ 
+Pytanie 19 
+Jeśli punkt 𝑝 ma jedną współrzędną barycentryczną równą 0.1, a pozostałe mają wartość w przedziale (0,1), to leży on .................................. . 
+ODP: wewnątrz trójkąta 
+ 
+ 
+Pytanie 20 
+Podaj co jest wejściem a co wyjściem transformacji kamery. 
+ODP: wejście: współrzędne punktów w przestrzeni sceny (world coordinates) 
+wyjście: współrzędne punktów w przestrzeni kamery (camera coordinates) 
+ 
+ 
+Pytanie 21 
+Dokończ zdanie: 
+Algorytmy rasteryzacji transformują .................. . 
+ODP: obiekty geometryczne w piksele 
+ 
+ 
+Pytanie 22 
+Wynikiem jakiej transformacji jest geometria we współrzędnych ekranu? 
+ODP: transformacji viewport 
+ 
+ 
+Pytanie 23 
+Opisz krótko, czym jest kanoniczna bryła widzenia i podaj jaki typ bryły występuje dla projekcji perspektywicznej. 
+ODP: jest to sześcian 2x2x2 ze środkiem w początku układu, dla projekcji perspektywicznej typ bryły to ostrosłup ścięty 
+ 
+ 
+Pytanie 24 
+     Vertex 1           Vertex 2           Vertex 3          
+X Y Z S T R G B X Y Z S T R G B X Y Z S T R G B 
+Zakładając, że dane w buforze są typu FLOAT i zorganizowane są jak na rysunku, podaj w bajtach offset i stride poszczególnych atrybutów wierzchołka: 
+ODP: 1 – stride: 32, offset: 0 
+2 – stride: 32, offset: 12 
+3 – stride: 32, offset: 20 
+ 
+ 
+Pytanie 25 
+Napisz instrukcje warunkową w pseudokodzie, czy punkt jest wewnątrz trójkąta. 
+ODP: if (p.x > 0 && p.x < 1 && p.y > 0 && p.y < 1 && p.z > 0 && p.z < 1) { // narysuj } 
+ 
+ 
+Pytanie 26 
+Czy światło padające na ścianę obiektu będzie miało te same parametry w cieniowaniu płaskim? 
+ODP: tak 
+> cieniowanie płaskie - jedno obliczenie na jedną ścianę 
+> cieniowanie Gourarda - obliczenia na każdy wierzchołek  
+> cieniowanie Phonga - obliczenia wymagane są dla każdego piksela obrazu 
+ 
+ 
+Pytanie 27 
+Jeżeli wartość w z-buforze o danych współrzędnych (x,y) jest ....... niż przetwarzanego piksela, to framebuffer nie jest aktualizowany. 
+ODP: mniejsza 
+ 
+ 
+Pytanie 28 
+Z czego składa się kamera? 
+ODP: e – punkt położenia 
+g – wektor kierunku patrzenia 
+t – wektor view-up 
+ 
+ 
+Pytanie 29 
+Wymień rodzaje shaderów w OpenGL. 
+ODP: Vertex Shader: Transformacje wierzchołków. 
+Fragment Shader: Kolorowanie pikseli. 
+Geometry Shader: Modyfikacja prymitywów. 
+Tessellation Control Shader: Kontrola podziału prymitywów. 
+Tessellation Evaluation Shader: Ocena nowych wierzchołków. 
+Compute Shader: Ogólne zadania obliczeniowe. 
+ 
+ 
+Pytanie 30 
+Czy następujące zdanie jest prawdziwe? 
+Zmienna typu uniform jest unikalna dla każdego programu shadera i może być dostępna z dowolnego shadera na dowolny etapie potoku graficznego. 
+ODP: tak 
+ 
+ 
+Pytanie 31 
+Podaj sekwencję mnożenia macierzy, aby uzyskać macierz dokonująca transformacji współrzędnych wirtualnego świata 3D do współrzędnych ekranu: 
+M = ............... 
+ODP: M = M_vp * M_per * M_cam 
+ 
+ 
+Pytanie 32 
+Punkt P ma następujące współrzędne barycentryczne względem pewnego trójkąta ABC: 0.62, 0.59, -0.22. Punkt P leży (zaznacz właściwą odpowiedź): 
+ODP: poza trójkątem 
+ 
+ 
+Pytanie 33 
+Czy następujące zdanie jest prawdziwe? 
+Zmienna typu uniform jest unikalna dla każdego programu shadera i może być dostępna z dowolnego shadera na dowolny etapie potoku graficznego. 
+ODP: tak 
+ 
+ 
+Pytanie 34 
+Wymień 3 własności obrazu i ich przykładowe wartości: 
+ODP: Liczba kanałów: 1 (czarno-biały), 3 (kolorowy RGB), 4 (kolorowy RGB z przezroczystością) 
+Głębia kolorów: 16 bitów na piksel 
+Rozdzielczość: 1920x1080 px (FHD) 
+ 
+ 
+Pytanie 35 
+Podaj dwa przykłady transformacji liniowych, 
+ODP: skalowanie, odbicie 
+ 
+ 
+Pytanie 36 
+Translacja 3D może być reprezentowana mnożeniem macierzy o wymiarach ……. x ……. . 
+ODP: 4x4 
+ 
+ 
+Pytanie 37 
+Podaj ogólny algorytm ray-castingu, 
+ODP: 1. Wyprowadzenie promienia kamery w kierunku rzutni. 
+2. Znalezienie punktu który przecina się jako pierwszy z obiektem ze sceny. 
+3. Ustalenie jasności punktu. 
+ 
+ 
+Pytanie 38 
+Jakie współrzędne są rezultatem transformacji kamery? 
+ODP: kanoniczna bryła widzenia, współrzędne w przestrzeni kamery 
+ 
+ 
+Pytanie 39 
+Translacja jest przykładem transformacji ....... 
+ODP: nieliniowej 
+ 
+ 
+Pytanie 40 
+Kamera umieszczona jest ....... wirtualną płaszczyzną obrazu. 
+ODP: za 
+ 
+ 
+Pytanie 41 
+Operacja pozwalająca przedstawić obiekty trójwymiarowego świata na płaszczyźnie to: 
+ODP: rzutowanie 
+ 
+ 
+Pytanie 42 
+Napisz pseudokod do barycentric 
+ODP:  
+public Vec3f barycentric(Vec3f A, Vec3f B, Vec3f C, Vec3f P) { 
+      // wektor składający się ze współrzędnych x wektorów AB, AC, PA 
+      Vec3f v1 = new Vec3f(B.x - A.x, C.x - A.x, A.x - P.x); 
+ 
+      // wektor składający się ze współrzędnych y wektorów AB, AC, PA 
+      Vec3f v2 = new Vec3f(B.y - A.y, C.y - A.y, A.y - P.y); 
+ 
+      // iloczyn skalarny v1 i v2 
+      Vec3f cross = this.scalarDot(v1, v2); 
+ 
+      // wektor postaci: cross.x / cross.z, cross.y / cross.z 
+      Vec2f uv = new Vec2f(cross.x / cross.z, cross.y / cross.z); 
+ 
+      // współrzędne barycentryczne, uv.x, uv.y, 1- uv.x - uv.y 
+      Vec3f barycentric = new Vec3f(uv.x, uv.y, 1 - uv.x - uv.y); 
+ 
+      return barycentric; 
+} 
+ 
+ 
+Pytanie 43 
+Opisz czym jest fragment i na jakim etapie potoku graficznego powstaje. 
+ODP: Fragment to kandydat na bycie pikselem, jest to dyskretna współrzędna ekranu, która potem stanie się pikselem. Wiele fragmentów może zajmować tą samą współrzędną. Powstaje w procesie rasteryzacji z rzeczywistych współrzędnych wielokąta. 
+ 
+ 
+Pytanie 44 
+Jaką wartością powinna być zainicjalizowana komórka z-buffora? 
+ODP: Maksymalna wartość `z` z danej sceny. Zmienna `z` to głębokość. 
+ 
+ 
+Pytanie 45 
+Wymień 3 cechy rzutowania ortograficznego. 
+ODP: 1. Zachowuje równoległość linii. 
+2. Dystans od kamery nie wpływa na wielkość obiektu. 
+3. Nie odzwierciedla sposobu w jaki ludzkie oko postrzega obraz. 
